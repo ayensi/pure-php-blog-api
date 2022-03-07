@@ -1,0 +1,53 @@
+version: '3'
+networks:
+  app:
+    driver: bridge
+services:
+  nginx:
+    image: nginx:alpine
+    ports:
+      - 80:80
+    volumes:
+      - ./src:/var/www
+      - ./images/nginx/nginx.conf:/etc/nginx/nginx.conf
+    depends_on:
+      - blog
+    networks:
+      - app
+
+  db:
+    image: postgres:14.2-alpine
+    env_file:
+      - ./docker.env
+    ports:
+      - 5432:5432
+    volumes:
+      - pgsql_data:/var/lib/postgresql/data
+    networks:
+      - app
+
+  blog:
+    image: php:fpm
+    container_name: blog
+    build:
+      context: ./src
+    volumes:
+      - ./src:/var/www
+    working_dir: /var/www
+    environment:
+      PHP_INI_SCAN_DIR: /usr/local/etc/php/custom.d:/usr/local/etc/php/conf.d
+    depends_on:
+      - db
+    networks:
+      - app
+#  cron:
+#    image: php:fpm
+#    restart: always
+#    volumes:
+#      - ./src:/var/www
+#    links:
+#      - backend
+#    command: 'sh var/www/run_cron.sh'
+
+volumes:
+  pgsql_data:
